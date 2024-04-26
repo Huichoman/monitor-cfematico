@@ -2,17 +2,14 @@ import { useEffect, useState } from "react"
 import { db } from "./utils/firebase"
 import { onValue, ref } from "firebase/database"
 import { ToastContainer, toast } from "react-toastify"
-
-import "./App.css"
+import "react-toastify/dist/ReactToastify.css"
 
 import logo from "./assets/logo.png"
 
 function App() {
   const [datos, setDatos] = useState()
-  const [actividad, setActividad] = useState("Normal")
+  const [actividad, setActividad] = useState("NORMAL")
   const [clientes, setClientes] = useState([])
-
-  const notify = () => toast("Wow so easy !")
 
   useEffect(() => {
     const query = ref(db, "cfe-001/")
@@ -27,40 +24,81 @@ function App() {
 
   useEffect(() => {
     if (datos) {
-      console.log("Datos >", datos)
+      // console.log("Datos >", datos)
       const clientesFiltrados = Object.values(datos.clientes)
       setClientes(clientesFiltrados)
-      console.log("Clientes filrados >", clientesFiltrados)
+      // console.log("Clientes filrados >", clientesFiltrados)
 
-      const actividadActualizada = datos.actividad
+      const actividadActualizada = datos.actividad.status
       setActividad(actividadActualizada)
-      console.log("Actividad actualizada >", actividadActualizada)
+      // console.log("Actividad actualizada >", actividadActualizada)
     }
   }, [datos])
 
   useEffect(() => {
-    if (actividad == "Golpe detectado") {
-      alert("Golpe detectado")
+    const toastAlert = () => {
+      toast.error(`ALERTA en CFE-001`, {
+        theme: "colored",
+      })
+    }
+
+    if (actividad == "ALERTA") {
+      toastAlert()
     }
   }, [actividad])
 
+  const sendAlert = async () => {
+    console.log("Clientes > ", clientes)
+    const PUSH_ENDPOINT = "https://exp.host/--/api/v2/push/send"
+    for (let token of clientes) {
+      let data = {
+        to: token,
+        // "title": title,
+        body: "ALERTA cfe-001",
+        sound: "default",
+        priority: "high",
+      }
+
+      fetch(PUSH_ENDPOINT, {
+        mode: "no-cors",
+        method: "POST",
+        headers: {
+          Accept: "application/json",
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(data),
+      }).catch((err) => console.log(err))
+    }
+  }
+
+  // toast.error("SENSORES ACTIVADOS", {
+  //   position: "bottom-right",
+  //   autoClose: 5000,
+  //   hideProgressBar: false,
+  //   closeOnClick: true,
+  //   pauseOnHover: true,
+  //   draggable: true,
+  //   progress: undefined,
+  //   theme: "light",
+  //   transition: "Bounce",
+  // })
+
   return (
     <>
-      <div className="flex flex-col items-start w-[100%] h-[90vh] text-slate-900 border">
-        <div className="w-[200px]">
-          <ToastContainer
-            position="bottom-center"
-            autoClose={false}
-            newestOnTop={false}
-            closeOnClick
-            rtl={false}
-            pauseOnFocusLoss
-            draggable
-            theme="colored"
-          />
-        </div>
-
-        <div className="flex items-end h-[12%] w-full border bg-tr px-10">
+      <div className="flex flex-col items-start w-full h-AUTO text-slate-900  py-5">
+        <ToastContainer autoClose={false} />
+        {/* <ToastContainer
+          position="bottom-right"
+          autoClose={5000}
+          hideProgressBar={false}
+          newestOnTop={false}
+          closeOnClick
+          rtl={false}
+          pauseOnFocusLoss
+          draggable
+          pauseOnHover
+        /> */}
+        <div className="flex items-end h-[12%] w-full  bg-tr px-10">
           <img className="h-[70px]" src={logo} />
         </div>
         <div className="flex justify-start items-start mx-10 mt-10 ">
@@ -70,11 +108,20 @@ function App() {
           </div>
         </div>
 
-        <div className="flex justify-start items-start mx-10 mt-10 ">
+        <div className="flex justify-start items-start mx-10 mt-5 ">
           <div className="flex items-center">
             <p className="text-[1.2rem] text-slate-500 mr-5">Actividad:</p>
             <p className="text-[1.2rem] text-green-700">{actividad}</p>
           </div>
+        </div>
+
+        <div className="flex  mx-10 mt-5">
+          <button
+            onClick={sendAlert}
+            className="bg-amber-600 w-40 h-8 rounded-md text-white shadow-md border-0 hover:bg-opacity-90"
+          >
+            Enviar alerta
+          </button>
         </div>
 
         <div className="flex justify-start items-start mx-10 mt-10 ">
@@ -83,11 +130,13 @@ function App() {
               Clientes registrados:{" "}
             </p>
             <div className="flex flex-col items-start">
-              {clientes.map((cliente, index) => (
-                <p key={index} className="text-[1rem] text-green-700">
-                  {cliente}
-                </p>
-              ))}
+              {clientes.length > 0
+                ? clientes.map((cliente, index) => (
+                    <div key={index}>
+                      <p className="text-[1rem] text-green-700">{cliente}</p>
+                    </div>
+                  ))
+                : null}
             </div>
           </div>
         </div>
